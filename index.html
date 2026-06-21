@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Systematic Attendance System</title>
+<title>Attendance System</title>
 
 <style>
 body {
@@ -75,9 +75,11 @@ select { background:#1f2937; color:white; }
 const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
-function setStatus(m){ document.getElementById("status").innerText = m; }
+function setStatus(m){
+  document.getElementById("status").innerText = m;
+}
 
-// load teachers
+// LOAD TEACHERS
 async function load(){
   const res = await fetch(API+"?action=getTeachers");
   const d = await res.json();
@@ -92,7 +94,7 @@ async function load(){
 
 load();
 
-// REGISTER (FIXED NO HANG)
+// REGISTER
 async function register(){
 
 const code = document.getElementById("teacher").value;
@@ -115,7 +117,7 @@ setStatus(d.message);
 alert(d.message);
 }
 
-// ENTRY EXIT
+// ENTRY / EXIT
 function mark(type){
 
 navigator.geolocation.getCurrentPosition(async pos=>{
