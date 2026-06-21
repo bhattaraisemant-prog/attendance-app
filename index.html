@@ -81,15 +81,22 @@ function setStatus(m){
 
 // LOAD TEACHERS
 async function load(){
-  const res = await fetch(API+"?action=getTeachers");
-  const d = await res.json();
+  try {
+    setStatus("Loading teachers...");
+    const res = await fetch(API+"?action=getTeachers");
+    const d = await res.json();
 
-  const sel = document.getElementById("teacher");
-  sel.innerHTML = `<option value="">Select Teacher</option>`;
+    const sel = document.getElementById("teacher");
+    sel.innerHTML = `<option value="">Select Teacher</option>`;
 
-  d.teachers.forEach(t=>{
-    sel.innerHTML += `<option value="${t.code}">${t.code} - ${t.name}</option>`;
-  });
+    d.teachers.forEach(t=>{
+      sel.innerHTML += `<option value="${t.code}">${t.code} - ${t.name}</option>`;
+    });
+
+    setStatus("Ready");
+  } catch (e) {
+    setStatus("Failed to load teachers: " + e.message);
+  }
 }
 
 load();
@@ -97,50 +104,65 @@ load();
 // REGISTER
 async function register(){
 
-const code = document.getElementById("teacher").value;
-if(!code) return alert("Select teacher");
+  const code = document.getElementById("teacher").value;
+  if(!code) return alert("Select teacher");
 
-setStatus("Registering...");
+  setStatus("Registering...");
 
-const res = await fetch(API,{
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body: JSON.stringify({
-    action:"register",
-    teacherCode:code,
-    deviceId:DEVICE
-  })
-});
+  try {
+    const res = await fetch(API,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        action:"register",
+        teacherCode:code,
+        deviceId:DEVICE
+      })
+    });
 
-const d = await res.json();
-setStatus(d.message);
-alert(d.message);
+    const d = await res.json();
+    setStatus(d.message);
+    alert(d.message);
+
+  } catch (e) {
+    setStatus("Error: " + e.message);
+    alert("Request failed: " + e.message);
+  }
 }
 
 // ENTRY / EXIT
 function mark(type){
 
-navigator.geolocation.getCurrentPosition(async pos=>{
+  navigator.geolocation.getCurrentPosition(async pos=>{
 
-setStatus("Sending...");
+    setStatus("Sending...");
 
-const res = await fetch(API,{
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body: JSON.stringify({
-    action:"markAttendance",
-    type:type,
-    lat:pos.coords.latitude,
-    lng:pos.coords.longitude,
-    deviceId:DEVICE
-  })
-});
+    try {
+      const res = await fetch(API,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          action:"markAttendance",
+          type:type,
+          lat:pos.coords.latitude,
+          lng:pos.coords.longitude,
+          deviceId:DEVICE
+        })
+      });
 
-const d = await res.json();
-setStatus(d.message);
-alert(d.message);
+      const d = await res.json();
+      setStatus(d.message);
+      alert(d.message);
 
-});
+    } catch (e) {
+      setStatus("Error: " + e.message);
+      alert("Request failed: " + e.message);
+    }
+
+  }, err => {
+    setStatus("Location error: " + err.message);
+    alert("Could not get location: " + err.message);
+  });
 
 }
 
