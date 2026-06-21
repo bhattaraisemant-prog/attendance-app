@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Attendance System</title>
+<title>Systematic Attendance System</title>
 
 <style>
 body {
   margin:0;
   font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
+  background:#0f172a;
   color:white;
   display:flex;
   justify-content:center;
@@ -21,16 +21,8 @@ body {
   background:#111827;
   padding:20px;
   border-radius:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* HEADER */
-.header {
-  text-align:center;
-  margin-bottom:15px;
-}
-
-/* LOCAL LOGO (logo.png in same folder) */
 .logo-img{
   width:65px;
   height:65px;
@@ -38,21 +30,8 @@ body {
   object-fit:cover;
   display:block;
   margin:0 auto 10px auto;
-  background:white;
-  padding:3px;
 }
 
-.title {
-  font-size:18px;
-  font-weight:bold;
-}
-
-.subtitle {
-  font-size:12px;
-  color:#9ca3af;
-}
-
-/* FORM */
 select, button {
   width:100%;
   padding:12px;
@@ -61,15 +40,7 @@ select, button {
   border:none;
 }
 
-select {
-  background:#1f2937;
-  color:white;
-}
-
-button {
-  cursor:pointer;
-  font-weight:bold;
-}
+select { background:#1f2937; color:white; }
 
 .register { background:#3b82f6; color:white; }
 .entry { background:#22c55e; color:white; }
@@ -77,9 +48,8 @@ button {
 
 .status {
   text-align:center;
-  margin-top:12px;
+  margin-top:10px;
   font-size:13px;
-  color:#9ca3af;
 }
 </style>
 </head>
@@ -88,22 +58,11 @@ button {
 
 <div class="card">
 
-<!-- HEADER -->
-<div class="header">
+<img src="logo.png" class="logo-img">
 
-  <!-- 🔥 LOCAL FILE LOGO -->
-  <img src="logo.png" class="logo-img">
+<select id="teacher"></select>
 
-  <div class="title">Systematic Attendance System</div>
-  <div class="subtitle">Teacher Entry & Exit Tracking</div>
-
-</div>
-
-<select id="teacher">
-<option>Loading...</option>
-</select>
-
-<button class="register" onclick="register()">Register Device</button>
+<button class="register" onclick="register()">Register</button>
 <button class="entry" onclick="mark('ENTRY')">ENTRY</button>
 <button class="exit" onclick="mark('EXIT')">EXIT</button>
 
@@ -114,37 +73,26 @@ button {
 <script>
 
 const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
-
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
-function setStatus(msg){
-  document.getElementById("status").innerText = msg;
+function setStatus(m){ document.getElementById("status").innerText = m; }
+
+// load teachers
+async function load(){
+  const res = await fetch(API+"?action=getTeachers");
+  const d = await res.json();
+
+  const sel = document.getElementById("teacher");
+  sel.innerHTML = `<option value="">Select Teacher</option>`;
+
+  d.teachers.forEach(t=>{
+    sel.innerHTML += `<option value="${t.code}">${t.code} - ${t.name}</option>`;
+  });
 }
 
-// LOAD TEACHERS
-async function loadTeachers(){
-  try {
-    const res = await fetch(API + "?action=getTeachers");
-    const data = await res.json();
+load();
 
-    const sel = document.getElementById("teacher");
-    sel.innerHTML = `<option value="">Select Teacher</option>`;
-
-    data.teachers.forEach(t=>{
-      const opt = document.createElement("option");
-      opt.value = t.code;
-      opt.innerText = t.code + " - " + t.name;
-      sel.appendChild(opt);
-    });
-
-  } catch(e){
-    setStatus("Failed to load teachers");
-  }
-}
-
-loadTeachers();
-
-// REGISTER
+// REGISTER (FIXED NO HANG)
 async function register(){
 
 const code = document.getElementById("teacher").value;
@@ -162,17 +110,17 @@ const res = await fetch(API,{
   })
 });
 
-const data = await res.json();
-setStatus(data.message);
-alert(data.message);
+const d = await res.json();
+setStatus(d.message);
+alert(d.message);
 }
 
-// ENTRY / EXIT
+// ENTRY EXIT
 function mark(type){
 
 navigator.geolocation.getCurrentPosition(async pos=>{
 
-setStatus("Sending attendance...");
+setStatus("Sending...");
 
 const res = await fetch(API,{
   method:"POST",
@@ -186,12 +134,10 @@ const res = await fetch(API,{
   })
 });
 
-const data = await res.json();
-setStatus(data.message);
-alert(data.message);
+const d = await res.json();
+setStatus(d.message);
+alert(d.message);
 
-},()=>{
-  alert("GPS denied");
 });
 
 }
