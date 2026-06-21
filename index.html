@@ -133,7 +133,19 @@ async function register(){
 // ENTRY / EXIT
 function mark(type){
 
+  setStatus("Getting your location...");
+
   navigator.geolocation.getCurrentPosition(async pos=>{
+
+    const accuracy = pos.coords.accuracy; // radius of uncertainty, in meters
+
+    // If the device can't get a confident fix, refuse rather than risk
+    // a falsely "inside school" or "outside school" result
+    if (accuracy > 100) {
+      setStatus("Location not accurate enough (±" + Math.round(accuracy) + "m)");
+      alert("Your location signal is too weak (±" + Math.round(accuracy) + "m). Please go outdoors, enable GPS/Location with high accuracy, and try again.");
+      return;
+    }
 
     setStatus("Sending...");
 
@@ -162,6 +174,10 @@ function mark(type){
   }, err => {
     setStatus("Location error: " + err.message);
     alert("Could not get location: " + err.message);
+  }, {
+    enableHighAccuracy: true, // force GPS instead of coarse WiFi/network location
+    timeout: 15000,
+    maximumAge: 0             // never reuse a cached/stale position
   });
 
 }
