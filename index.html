@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teacher Attendance System</title>
+<title>Teacher Attendance</title>
 
 <style>
 body{
@@ -18,80 +17,52 @@ align-items:center;
 }
 
 .card{
+background:white;
 width:92%;
 max-width:420px;
-background:#fff;
-padding:28px;
-border-radius:22px;
+padding:25px;
+border-radius:18px;
 text-align:center;
-box-shadow:0 20px 45px rgba(0,0,0,0.25);
+box-shadow:0 10px 30px rgba(0,0,0,0.25);
 }
 
-.logo{
-width:90px;
-margin-bottom:10px;
-}
-
-h2{
-color:#0d47a1;
-margin:10px 0;
-}
+h2{color:#0d47a1;}
 
 select,button{
 width:100%;
-padding:13px;
+padding:12px;
 margin-top:10px;
-border-radius:12px;
+border-radius:10px;
 border:none;
 font-size:16px;
 }
 
-select{
-background:#eef5ff;
-}
+select{background:#eef4ff;}
 
 button{
 background:#0d47a1;
 color:white;
 font-weight:bold;
 cursor:pointer;
-transition:0.2s;
 }
 
-button:hover{
-opacity:0.9;
-}
+.exit{background:#e53935;}
 
-.exit{
-background:#e53935;
-}
+#panel{display:none;}
 
-#panel{
-display:none;
-}
-
-.info{
-margin:15px 0;
-font-size:17px;
-font-weight:bold;
-color:#333;
-}
+.info{margin:15px 0;font-weight:bold;}
 </style>
-
 </head>
 
 <body>
 
 <div class="card">
 
-<img src="logo.png" class="logo">
-
 <h2>Teacher Attendance</h2>
 
 <div id="register">
 <select id="teacher">
 <option value="">Select Teacher</option>
-
 <option value="001">001 - Suruchi Sah</option>
 <option value="002">002 - Deepa Sah</option>
 <option value="003">003 - Manorama Sah</option>
@@ -123,26 +94,22 @@ color:#333;
 <option value="029">029 - Ajay Singh</option>
 <option value="030">030 - Shankar Thakur</option>
 <option value="031">031 - Bibhuti Mukhiya</option>
-
 </select>
 
 <button onclick="register()">Register Device</button>
-
 </div>
 
 <div id="panel">
-
 <div class="info" id="name"></div>
-
-<button onclick="mark('ENTRY')">ENTRY</button> <button class="exit" onclick="mark('EXIT')">EXIT</button>
-
+<button onclick="mark('ENTRY')">ENTRY</button>
+<button class="exit" onclick="mark('EXIT')">EXIT</button>
 </div>
 
 </div>
 
 <script>
 
-const API="https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
+const API="https://attendance-proxy.bhattaraisemant.workers.dev";
 
 const DEVICE=localStorage.deviceId||(localStorage.deviceId=crypto.randomUUID());
 
@@ -153,28 +120,10 @@ body:JSON.stringify(data)
 }).then(r=>r.json());
 }
 
-async function checkUser(){
-
-const res=await post({
-action:"teacher",
-deviceId:DEVICE
-});
-
-if(res.success){
-
-document.getElementById("register").style.display="none";
-document.getElementById("panel").style.display="block";
-
-document.getElementById("name").innerText=
-res.teacher.teacherName+" ("+res.teacher.teacherCode+")";
-}
-
-}
-
 async function register(){
 
 const code=document.getElementById("teacher").value;
-if(!code){alert("Select teacher");return;}
+if(!code){alert("Select Teacher");return;}
 
 const res=await post({
 action:"register",
@@ -186,12 +135,27 @@ alert(res.message||"Done");
 checkUser();
 }
 
+async function checkUser(){
+
+const res=await post({
+action:"check",
+deviceId:DEVICE
+});
+
+if(res.success){
+document.getElementById("register").style.display="none";
+document.getElementById("panel").style.display="block";
+document.getElementById("name").innerText=
+res.teacher.teacherName+" ("+res.teacher.teacherCode+")";
+}
+}
+
 function mark(type){
 
 navigator.geolocation.getCurrentPosition(async pos=>{
 
 const res=await post({
-action:"attendance",
+action:"markAttendance",
 type:type,
 lat:pos.coords.latitude,
 lng:pos.coords.longitude,
