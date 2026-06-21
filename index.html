@@ -1,81 +1,394 @@
 <!DOCTYPE html>
+
 <html>
+
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial; text-align: center; padding: 20px; }
-    input, button { width: 80%; padding: 10px; margin-top: 10px; font-size: 14px; }
-    #status { margin-top: 15px; white-space: pre-wrap; font-weight: bold; text-align: left; word-break: break-all; }
-  </style>
+
+<meta charset="utf-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1">
+
+<title>
+Teacher Attendance
+</title>
+
+<style>
+
+body{
+
+margin:0;
+
+font-family:
+Arial;
+
+background:
+
+linear-gradient(
+135deg,
+#1565c0,
+#42a5f5
+);
+
+min-height:
+100vh;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+}
+
+.card{
+
+width:92%;
+
+max-width:420px;
+
+background:white;
+
+border-radius:25px;
+
+padding:30px;
+
+text-align:center;
+
+box-shadow:
+0 20px 40px rgba(0,0,0,.15);
+
+}
+
+.logo{
+
+width:120px;
+
+margin-bottom:15px;
+
+}
+
+h2{
+
+color:#1565c0;
+
+}
+
+select,
+button{
+
+width:100%;
+
+padding:14px;
+
+margin-top:12px;
+
+border-radius:14px;
+
+border:none;
+
+font-size:16px;
+
+}
+
+select{
+
+background:#f1f6ff;
+
+}
+
+button{
+
+background:#1565c0;
+
+color:white;
+
+font-weight:bold;
+
+cursor:pointer;
+
+}
+
+.exit{
+
+background:#e53935;
+
+}
+
+.info{
+
+margin-top:20px;
+
+font-size:18px;
+
+}
+
+</style>
+
 </head>
+
 <body>
 
-<h2>Systematic School Attendance System</h2>
+<div class="card">
 
-<input id="tid" placeholder="Teacher ID">
-<input id="tname" placeholder="Name">
+<img
+src="logo.png"
+class="logo">
 
-<button onclick="register()">Register</button>
-<button onclick="entry()">ENTRY</button>
-<button onclick="exit()">EXIT</button>
+<h2>
+Teacher Attendance
+</h2>
 
-<div id="status"></div>
+<div id="register">
+
+<select id="teacher">
+
+<option value="">
+Select Teacher
+</option>
+
+</select>
+
+<button
+onclick=
+"register()">
+
+Register Device
+
+</button>
+
+</div>
+
+<div
+id="panel"
+
+style=
+"display:none">
+
+<div
+class="info"
+
+id=
+"name">
+
+</div>
+
+<button
+onclick=
+"mark('ENTRY')">
+
+ENTRY
+
+</button>
+
+<button
+class=
+"exit"
+
+onclick=
+"mark('EXIT')">
+
+EXIT
+
+</button>
+
+</div>
+
+</div>
 
 <script>
-const WORKER_URL = "https://attendance-proxy.bhattaraisemant.workers.dev/";
 
-let deviceId = btoa(navigator.userAgent + screen.width + screen.height);
+const API=
+"https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 
-async function callApi(payload) {
-  document.getElementById("status").innerText = "Working...";
-  try {
-    const res = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const rawText = await res.text();
-    try {
-      const data = JSON.parse(rawText);
-      document.getElementById("status").innerText = data.message;
-    } catch (parseErr) {
-      document.getElementById("status").innerText = "RAW RESPONSE (status " + res.status + "):\n\n" + rawText.substring(0, 1000);
-    }
-  } catch (err) {
-    document.getElementById("status").innerText = "❌ Network error: " + err.message;
-  }
+const DEVICE=
+localStorage.deviceId
+||
+crypto.randomUUID();
+
+localStorage.deviceId=
+DEVICE;
+
+const teachers=[
+
+["001","Suruchi Sah"],
+["002","Deepa Sah"],
+["003","Manorama Sah"],
+["004","Phulmati Sah"],
+["005","Priyanka Singh"],
+["006","Chandani Sah"],
+["007","Mamta Yadav"],
+["008","Sangita Pajiyar"],
+["009","Diksha Ray"],
+["010","Mamata Sah"],
+["011","Jaya Sah"],
+["012","Pratiksha Thakur A"],
+["013","Anjali Sah"],
+["014","Rajani Chaudhary"],
+["015","Laxmi Singh"],
+["016","Khushbu Jaiswal"],
+["017","Radhika Chaudhary"],
+["018","Nutan Karn"],
+["019","Suriya Sah"],
+["020","Mamta Ghising"],
+["021","Pratiksha Thakur B"],
+["022","Anupama Karn"],
+["023","Shivani Jha"],
+["024","Nagendra Mijar"],
+["025","Satyendra Karn"],
+["026","Pramod Kumar Pandit"],
+["027","Rajeev Kr. Karn"],
+["028","Ramsnehi Thakur"],
+["029","Ajay Singh"],
+["030","Shankar Thakur"],
+["031","Bibhuti Mukhiya"]
+
+];
+
+teachers.forEach(t=>{
+
+teacher.innerHTML+=
+`<option value="${t[0]}">
+${t[0]} - ${t[1]}
+</option>`;
+
+});
+
+async function post(x){
+
+const r=
+await fetch(
+API,
+{
+
+method:
+"POST",
+
+body:
+JSON.stringify(
+x
+)
+
 }
 
-function register() {
-  callApi({
-    action: "register",
-    teacherId: document.getElementById("tid").value,
-    name: document.getElementById("tname").value,
-    deviceId: deviceId,
-  });
+);
+
+return r.json();
+
 }
 
-function entry() { sendAttendance("ENTRY"); }
-function exit() { sendAttendance("EXIT"); }
+async function load(){
 
-function sendAttendance(type) {
-  document.getElementById("status").innerText = "Getting GPS...";
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      callApi({
-        action: "markAttendance",
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        deviceId: deviceId,
-        type: type,
-        accuracy: pos.coords.accuracy,
-      });
-    },
-    () => { document.getElementById("status").innerText = "❌ GPS error or permission denied"; },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+const r=
+await post({
+
+action:
+"teacher",
+
+deviceId:
+DEVICE
+
+});
+
+if(
+r.success
+){
+
+register.style.display=
+"none";
+
+panel.style.display=
+"block";
+
+name.innerHTML=
+r.teacher.teacherName;
+
 }
+
+}
+
+async function register(){
+
+if(
+!teacher.value
+){
+
+alert(
+"Select teacher"
+);
+
+return;
+
+}
+
+const r=
+await post({
+
+action:
+"register",
+
+teacherCode:
+teacher.value,
+
+deviceId:
+DEVICE
+
+});
+
+alert(
+r.message
+||
+"Registered"
+);
+
+load();
+
+}
+
+function mark(type){
+
+navigator
+.geolocation
+.getCurrentPosition(
+
+async p=>{
+
+const r=
+await post({
+
+action:
+"attendance",
+
+type,
+
+lat:
+p.coords.latitude,
+
+lng:
+p.coords.longitude,
+
+deviceId:
+DEVICE
+
+});
+
+alert(
+r.message
+||
+"Success"
+);
+
+}
+
+);
+
+}
+
+load();
+
 </script>
 
 </body>
+
 </html>
