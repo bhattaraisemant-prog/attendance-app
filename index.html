@@ -1,42 +1,174 @@
-export default {
-  async fetch(request) {
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance System</title>
 
-    const TARGET = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 
-    const url = new URL(request.url);
+.card {
+  width:320px;
+  background:#111827;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
 
-    // ✅ GET (teachers)
-    if (request.method === "GET") {
-      const res = await fetch(TARGET + "?" + url.searchParams.toString());
-      return new Response(await res.text(), {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-    }
+h2 {
+  text-align:center;
+  margin-bottom:20px;
+}
 
-    // 🔥 FIXED POST (VERY IMPORTANT)
-    if (request.method === "POST") {
+select, button {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  font-size:14px;
+}
 
-      const bodyText = await request.text();
+select {
+  background:#1f2937;
+  color:white;
+}
 
-      const res = await fetch(TARGET, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: bodyText
-      });
+button {
+  cursor:pointer;
+  font-weight:bold;
+}
 
-      return new Response(await res.text(), {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-    }
+.register { background:#3b82f6; color:white; }
+.entry { background:#22c55e; color:white; }
+.exit { background:#ef4444; color:white; }
 
-    return new Response("Invalid request", { status: 400 });
+button:hover {
+  opacity:0.85;
+}
+
+.status {
+  margin-top:15px;
+  text-align:center;
+  font-size:13px;
+  color:#9ca3af;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>📍 Attendance System</h2>
+
+<select id="teacher">
+<option>Loading teachers...</option>
+</select>
+
+<button class="register" onclick="register()">Register Device</button>
+<button class="entry" onclick="mark('ENTRY')">ENTRY</button>
+<button class="exit" onclick="mark('EXIT')">EXIT</button>
+
+<div class="status" id="status">Ready</div>
+
+</div>
+
+<script>
+
+const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
+const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
+
+function setStatus(msg){
+  document.getElementById("status").innerText = msg;
+}
+
+async function loadTeachers(){
+  try {
+    const res = await fetch(API + "?action=getTeachers");
+    const data = await res.json();
+
+    const sel = document.getElementById("teacher");
+    sel.innerHTML = `<option value="">Select Teacher</option>`;
+
+    data.teachers.forEach(t=>{
+      const opt = document.createElement("option");
+      opt.value = t.code;
+      opt.innerText = `${t.code} - ${t.name}`;
+      sel.appendChild(opt);
+    });
+
+  } catch(err){
+    setStatus("Failed to load teachers");
   }
-};
+}
+
+loadTeachers();
+setInterval(loadTeachers, 10000);
+
+async function post(data){
+  const res = await fetch(API,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function register(){
+
+const code = document.getElementById("teacher").value;
+if(!code) return alert("Select teacher");
+
+setStatus("Registering...");
+
+const res = await post({
+action:"register",
+teacherCode:code,
+deviceId:DEVICE
+});
+
+setStatus(res.message);
+alert(res.message);
+}
+
+function mark(type){
+
+setStatus("Getting GPS...");
+
+navigator.geolocation.getCurrentPosition(async pos=>{
+
+setStatus("Sending attendance...");
+
+const res = await post({
+action:"markAttendance",
+type:type,
+lat:pos.coords.latitude,
+lng:pos.coords.longitude,
+deviceId:DEVICE
+});
+
+setStatus(res.message);
+alert(res.message);
+
+},()=>{
+
+setStatus("GPS denied");
+
+});
+
+}
+
+</script>
+
+</body>
+</html>
