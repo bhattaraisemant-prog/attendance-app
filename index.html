@@ -30,7 +30,7 @@ body {
   margin-bottom:15px;
 }
 
-/* LOGO FROM GITHUB */
+/* LOCAL LOGO (logo.png in same folder) */
 .logo-img{
   width:65px;
   height:65px;
@@ -91,10 +91,10 @@ button {
 <!-- HEADER -->
 <div class="header">
 
-  <!-- 🔥 YOUR GITHUB logo.png LINK -->
-  <img src="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/logo.png" class="logo-img">
+  <!-- 🔥 LOCAL FILE LOGO -->
+  <img src="logo.png" class="logo-img">
 
-  <div class="title">Systematic Attendance System</div>
+  <div class="title">Attendance System</div>
   <div class="subtitle">Teacher Entry & Exit Tracking</div>
 
 </div>
@@ -115,7 +115,6 @@ button {
 
 const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
 
-// unique device id
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
 function setStatus(msg){
