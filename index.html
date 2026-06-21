@@ -8,7 +8,7 @@
 body {
   margin:0;
   font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
+  background:#0f172a;
   color:white;
   display:flex;
   justify-content:center;
@@ -20,28 +20,22 @@ body {
   width:320px;
   background:#111827;
   padding:20px;
-  border-radius:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  border-radius:15px;
 }
 
 h2 {
   text-align:center;
-  margin-bottom:20px;
 }
 
 select, button {
   width:100%;
   padding:12px;
   margin-top:10px;
+  border-radius:8px;
   border:none;
-  border-radius:10px;
-  font-size:14px;
 }
 
-select {
-  background:#1f2937;
-  color:white;
-}
+select { background:#1f2937; color:white; }
 
 button {
   cursor:pointer;
@@ -52,13 +46,9 @@ button {
 .entry { background:#22c55e; color:white; }
 .exit { background:#ef4444; color:white; }
 
-button:hover {
-  opacity:0.85;
-}
-
 .status {
-  margin-top:15px;
   text-align:center;
+  margin-top:10px;
   font-size:13px;
   color:#9ca3af;
 }
@@ -69,13 +59,13 @@ button:hover {
 
 <div class="card">
 
-<h2>📍 Attendance System</h2>
+<h2>Attendance System</h2>
 
 <select id="teacher">
-<option>Loading teachers...</option>
+<option>Loading...</option>
 </select>
 
-<button class="register" onclick="register()">Register Device</button>
+<button class="register" onclick="register()">Register</button>
 <button class="entry" onclick="mark('ENTRY')">ENTRY</button>
 <button class="exit" onclick="mark('EXIT')">EXIT</button>
 
@@ -103,26 +93,16 @@ async function loadTeachers(){
     data.teachers.forEach(t=>{
       const opt = document.createElement("option");
       opt.value = t.code;
-      opt.innerText = `${t.code} - ${t.name}`;
+      opt.innerText = t.code + " - " + t.name;
       sel.appendChild(opt);
     });
 
-  } catch(err){
+  } catch(e){
     setStatus("Failed to load teachers");
   }
 }
 
 loadTeachers();
-setInterval(loadTeachers, 10000);
-
-async function post(data){
-  const res = await fetch(API,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(data)
-  });
-  return res.json();
-}
 
 async function register(){
 
@@ -131,39 +111,45 @@ if(!code) return alert("Select teacher");
 
 setStatus("Registering...");
 
-const res = await post({
-action:"register",
-teacherCode:code,
-deviceId:DEVICE
+const res = await fetch(API,{
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({
+    action: "register",
+    teacherCode: code,
+    deviceId: DEVICE
+  })
 });
 
-setStatus(res.message);
-alert(res.message);
+const data = await res.json();
+setStatus(data.message);
+alert(data.message);
 }
 
 function mark(type){
 
-setStatus("Getting GPS...");
-
 navigator.geolocation.getCurrentPosition(async pos=>{
 
-setStatus("Sending attendance...");
+setStatus("Sending...");
 
-const res = await post({
-action:"markAttendance",
-type:type,
-lat:pos.coords.latitude,
-lng:pos.coords.longitude,
-deviceId:DEVICE
+const res = await fetch(API,{
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({
+    action: "markAttendance",
+    type: type,
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude,
+    deviceId: DEVICE
+  })
 });
 
-setStatus(res.message);
-alert(res.message);
+const data = await res.json();
+setStatus(data.message);
+alert(data.message);
 
 },()=>{
-
-setStatus("GPS denied");
-
+  alert("GPS denied");
 });
 
 }
