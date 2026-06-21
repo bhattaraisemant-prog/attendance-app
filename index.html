@@ -30,18 +30,16 @@ body {
   margin-bottom:15px;
 }
 
-.logo {
-  width:60px;
-  height:60px;
+/* LOGO FROM GITHUB */
+.logo-img{
+  width:65px;
+  height:65px;
   border-radius:50%;
-  background:white;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  object-fit:cover;
+  display:block;
   margin:0 auto 10px auto;
-  font-size:22px;
-  font-weight:bold;
-  color:#0f172a;
+  background:white;
+  padding:3px;
 }
 
 .title {
@@ -90,11 +88,15 @@ button {
 
 <div class="card">
 
-<!-- LOGO SECTION -->
+<!-- HEADER -->
 <div class="header">
-  <div class="logo">A</div>
-  <div class="title">Attendance System</div>
+
+  <!-- 🔥 YOUR GITHUB logo.png LINK -->
+  <img src="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/logo.png" class="logo-img">
+
+  <div class="title">Systematic Attendance System</div>
   <div class="subtitle">Teacher Entry & Exit Tracking</div>
+
 </div>
 
 <select id="teacher">
@@ -112,12 +114,15 @@ button {
 <script>
 
 const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
+
+// unique device id
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
 function setStatus(msg){
   document.getElementById("status").innerText = msg;
 }
 
+// LOAD TEACHERS
 async function loadTeachers(){
   try {
     const res = await fetch(API + "?action=getTeachers");
@@ -140,6 +145,7 @@ async function loadTeachers(){
 
 loadTeachers();
 
+// REGISTER
 async function register(){
 
 const code = document.getElementById("teacher").value;
@@ -162,11 +168,12 @@ setStatus(data.message);
 alert(data.message);
 }
 
+// ENTRY / EXIT
 function mark(type){
 
 navigator.geolocation.getCurrentPosition(async pos=>{
 
-setStatus("Sending...");
+setStatus("Sending attendance...");
 
 const res = await fetch(API,{
   method:"POST",
