@@ -1,78 +1,30 @@
 <!DOCTYPE html>
+
 <html>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attendance</title>
-
-<style>
-body{margin:0;font-family:Arial;background:#1976d2;display:flex;justify-content:center;align-items:center;height:100vh;}
-.card{background:white;padding:20px;border-radius:15px;width:90%;max-width:400px;text-align:center;}
-button{width:100%;padding:12px;margin-top:10px;}
-</style>
-
+<title>Test</title>
 </head>
 <body>
 
-<div class="card">
-
-<h2>Teacher Attendance</h2>
+<h2>System Test</h2>
 
 <select id="teacher">
 <option value="">Select</option>
 <option value="001">001</option>
-<option value="002">002</option>
-<option value="003">003</option>
 </select>
 
 <button onclick="register()">Register</button>
 
 <div id="panel" style="display:none">
-<button onclick="mark('ENTRY')">ENTRY</button>
-<button onclick="mark('EXIT')">EXIT</button>
-</div>
-
+<button onclick="alert('ENTRY WORKS')">ENTRY</button>
+<button onclick="alert('EXIT WORKS')">EXIT</button>
 </div>
 
 <script>
 
-const API="https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
-
-const DEVICE=localStorage.deviceId||(localStorage.deviceId=crypto.randomUUID());
-
-async function send(data){
-return fetch(API,{
-method:"POST",
-body:JSON.stringify(data)
-}).then(r=>r.json());
-}
-
-async function register(){
-
-let code=document.getElementById("teacher").value;
-if(!code){alert("Select");return;}
-
-await send({action:"register",teacherCode:code,deviceId:DEVICE});
-
-document.getElementById("panel").style.display="block";
-}
-
-function mark(type){
-
-navigator.geolocation.getCurrentPosition(async pos=>{
-
-await send({
-action:"attendance",
-type:type,
-lat:pos.coords.latitude,
-lng:pos.coords.longitude,
-deviceId:DEVICE
-});
-
-alert(type+" done");
-
-});
-
+function register(){
+  alert("REGISTER CLICKED");
+  document.getElementById("panel").style.display="block";
 }
 
 </script>
