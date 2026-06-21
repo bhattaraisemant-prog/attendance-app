@@ -1,70 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teacher Attendance System</title>
+<title>Attendance System</title>
 </head>
 
-<body style="margin:0;font-family:Arial;background:linear-gradient(135deg,#0d47a1,#42a5f5);height:100vh;display:flex;justify-content:center;align-items:center;">
+<body style="margin:0;font-family:Arial;background:linear-gradient(135deg,#0d47a1,#42a5f5);display:flex;justify-content:center;align-items:center;height:100vh;">
 
-<div style="background:white;width:92%;max-width:420px;border-radius:18px;padding:20px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+<div style="background:white;width:92%;max-width:420px;padding:20px;border-radius:18px;text-align:center;">
 
-<!-- LOGO -->
-<img src="logo.png" style="width:80px;margin-bottom:10px;border-radius:10px;">
+<img src="logo.png" style="width:80px;border-radius:10px;">
 
-<h2 style="color:#0d47a1;margin:10px 0;">Teacher Attendance</h2>
+<h2>Teacher Attendance</h2>
 
-<p id="status" style="color:green;font-size:13px;"></p>
-
-<select id="teacher" style="width:100%;padding:12px;border-radius:10px;margin-top:10px;">
-<option value="">Select Teacher</option>
-<option value="001">001 - Suruchi Sah</option>
-<option value="002">002 - Deepa Sah</option>
-<option value="003">003 - Manorama Sah</option>
-<option value="004">004 - Phulmati Sah</option>
-<option value="005">005 - Priyanka Singh</option>
-<option value="006">006 - Chandani Sah</option>
-<option value="007">007 - Mamta Yadav</option>
-<option value="008">008 - Sangita Pajiyar</option>
-<option value="009">009 - Diksha Ray</option>
-<option value="010">010 - Mamata Sah</option>
-<option value="011">011 - Jaya Sah</option>
-<option value="012">012 - Pratiksha Thakur A</option>
-<option value="013">013 - Anjali Sah</option>
-<option value="014">014 - Rajani Chaudhary</option>
-<option value="015">015 - Laxmi Singh</option>
-<option value="016">016 - Khushbu Jaiswal</option>
-<option value="017">017 - Radhika Chaudhary</option>
-<option value="018">018 - Nutan Karn</option>
-<option value="019">019 - Suriya Sah</option>
-<option value="020">020 - Mamta Ghising</option>
-<option value="021">021 - Pratiksha Thakur B</option>
-<option value="022">022 - Anupama Karn</option>
-<option value="023">023 - Shivani Jha</option>
-<option value="024">024 - Nagendra Mijar</option>
-<option value="025">025 - Satyendra Karn</option>
-<option value="026">026 - Pramod Kumar Pandit</option>
-<option value="027">027 - Rajeev Kr. Karn</option>
-<option value="028">028 - Ramsnehi Thakur</option>
-<option value="029">029 - Ajay Singh</option>
-<option value="030">030 - Shankar Thakur</option>
-<option value="031">031 - Bibhuti Mukhiya</option>
+<select id="teacher" style="width:100%;padding:10px;">
+<option>Loading...</option>
 </select>
 
 <br><br>
 
-<button onclick="register()" style="width:100%;padding:12px;background:#0d47a1;color:white;border:none;border-radius:10px;font-size:15px;">
-Register Device
+<button onclick="register()" style="width:100%;padding:12px;background:#0d47a1;color:white;border:none;">
+Register
 </button>
 
 <br><br>
 
-<button onclick="mark('ENTRY')" style="width:48%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:10px;">
+<button onclick="mark('ENTRY')" style="width:48%;padding:10px;background:green;color:white;border:none;">
 ENTRY
 </button>
 
-<button onclick="mark('EXIT')" style="width:48%;padding:12px;background:#c62828;color:white;border:none;border-radius:10px;">
+<button onclick="mark('EXIT')" style="width:48%;padding:10px;background:red;color:white;border:none;">
 EXIT
 </button>
 
@@ -84,14 +49,30 @@ async function post(data){
   return res.json();
 }
 
+// LIVE LOAD TEACHERS
+async function loadTeachers(){
+
+  const res = await fetch(API + "?action=getTeachers");
+  const data = await res.json();
+
+  const select = document.getElementById("teacher");
+  select.innerHTML = `<option value="">Select Teacher</option>`;
+
+  data.teachers.forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t.code;
+    opt.innerText = `${t.code} - ${t.name}`;
+    select.appendChild(opt);
+  });
+}
+
+setInterval(loadTeachers, 10000);
+loadTeachers();
+
 async function register(){
 
 const code = document.getElementById("teacher").value;
-
-if(!code){
-alert("Select Teacher");
-return;
-}
+if(!code) return alert("Select teacher");
 
 const res = await post({
 action:"register",
@@ -100,8 +81,6 @@ deviceId:DEVICE
 });
 
 alert(res.message);
-document.getElementById("status").innerText = res.message;
-
 }
 
 function mark(type){
@@ -117,7 +96,6 @@ deviceId:DEVICE
 });
 
 alert(res.message);
-document.getElementById("status").innerText = res.message;
 
 });
 
