@@ -1,107 +1,42 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attendance System</title>
-</head>
+export default {
+  async fetch(request) {
 
-<body style="margin:0;font-family:Arial;background:linear-gradient(135deg,#0d47a1,#42a5f5);display:flex;justify-content:center;align-items:center;height:100vh;">
+    const TARGET = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 
-<div style="background:white;width:92%;max-width:420px;padding:20px;border-radius:18px;text-align:center;">
+    const url = new URL(request.url);
 
-<img src="logo.png" style="width:80px;border-radius:10px;">
+    // ✅ GET (teachers)
+    if (request.method === "GET") {
+      const res = await fetch(TARGET + "?" + url.searchParams.toString());
+      return new Response(await res.text(), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
 
-<h2>Teacher Attendance</h2>
+    // 🔥 FIXED POST (VERY IMPORTANT)
+    if (request.method === "POST") {
 
-<select id="teacher" style="width:100%;padding:10px;">
-<option>Loading...</option>
-</select>
+      const bodyText = await request.text();
 
-<br><br>
+      const res = await fetch(TARGET, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: bodyText
+      });
 
-<button onclick="register()" style="width:100%;padding:12px;background:#0d47a1;color:white;border:none;">
-Register
-</button>
+      return new Response(await res.text(), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
 
-<br><br>
-
-<button onclick="mark('ENTRY')" style="width:48%;padding:10px;background:green;color:white;border:none;">
-ENTRY
-</button>
-
-<button onclick="mark('EXIT')" style="width:48%;padding:10px;background:red;color:white;border:none;">
-EXIT
-</button>
-
-</div>
-
-<script>
-
-const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
-
-const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
-
-async function post(data){
-  const res = await fetch(API,{
-    method:"POST",
-    body:JSON.stringify(data)
-  });
-  return res.json();
-}
-
-// LIVE LOAD TEACHERS
-async function loadTeachers(){
-
-  const res = await fetch(API + "?action=getTeachers");
-  const data = await res.json();
-
-  const select = document.getElementById("teacher");
-  select.innerHTML = `<option value="">Select Teacher</option>`;
-
-  data.teachers.forEach(t=>{
-    const opt = document.createElement("option");
-    opt.value = t.code;
-    opt.innerText = `${t.code} - ${t.name}`;
-    select.appendChild(opt);
-  });
-}
-
-setInterval(loadTeachers, 10000);
-loadTeachers();
-
-async function register(){
-
-const code = document.getElementById("teacher").value;
-if(!code) return alert("Select teacher");
-
-const res = await post({
-action:"register",
-teacherCode:code,
-deviceId:DEVICE
-});
-
-alert(res.message);
-}
-
-function mark(type){
-
-navigator.geolocation.getCurrentPosition(async pos=>{
-
-const res = await post({
-action:"markAttendance",
-type:type,
-lat:pos.coords.latitude,
-lng:pos.coords.longitude,
-deviceId:DEVICE
-});
-
-alert(res.message);
-
-});
-
-}
-
-</script>
-
-</body>
-</html>
+    return new Response("Invalid request", { status: 400 });
+  }
+};
