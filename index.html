@@ -8,7 +8,7 @@
 body {
   margin:0;
   font-family: Arial;
-  background:#0f172a;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
   color:white;
   display:flex;
   justify-content:center;
@@ -17,25 +17,56 @@ body {
 }
 
 .card {
-  width:320px;
+  width:340px;
   background:#111827;
   padding:20px;
-  border-radius:15px;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
 }
 
-h2 {
+/* HEADER */
+.header {
   text-align:center;
+  margin-bottom:15px;
 }
 
+.logo {
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 10px auto;
+  font-size:22px;
+  font-weight:bold;
+  color:#0f172a;
+}
+
+.title {
+  font-size:18px;
+  font-weight:bold;
+}
+
+.subtitle {
+  font-size:12px;
+  color:#9ca3af;
+}
+
+/* FORM */
 select, button {
   width:100%;
   padding:12px;
   margin-top:10px;
-  border-radius:8px;
+  border-radius:10px;
   border:none;
 }
 
-select { background:#1f2937; color:white; }
+select {
+  background:#1f2937;
+  color:white;
+}
 
 button {
   cursor:pointer;
@@ -48,7 +79,7 @@ button {
 
 .status {
   text-align:center;
-  margin-top:10px;
+  margin-top:12px;
   font-size:13px;
   color:#9ca3af;
 }
@@ -59,13 +90,18 @@ button {
 
 <div class="card">
 
-<h2>Attendance System</h2>
+<!-- LOGO SECTION -->
+<div class="header">
+  <div class="logo">A</div>
+  <div class="title">Attendance System</div>
+  <div class="subtitle">Teacher Entry & Exit Tracking</div>
+</div>
 
 <select id="teacher">
 <option>Loading...</option>
 </select>
 
-<button class="register" onclick="register()">Register</button>
+<button class="register" onclick="register()">Register Device</button>
 <button class="entry" onclick="mark('ENTRY')">ENTRY</button>
 <button class="exit" onclick="mark('EXIT')">EXIT</button>
 
@@ -115,9 +151,9 @@ const res = await fetch(API,{
   method:"POST",
   headers:{ "Content-Type":"application/json" },
   body: JSON.stringify({
-    action: "register",
-    teacherCode: code,
-    deviceId: DEVICE
+    action:"register",
+    teacherCode:code,
+    deviceId:DEVICE
   })
 });
 
@@ -136,11 +172,11 @@ const res = await fetch(API,{
   method:"POST",
   headers:{ "Content-Type":"application/json" },
   body: JSON.stringify({
-    action: "markAttendance",
-    type: type,
-    lat: pos.coords.latitude,
-    lng: pos.coords.longitude,
-    deviceId: DEVICE
+    action:"markAttendance",
+    type:type,
+    lat:pos.coords.latitude,
+    lng:pos.coords.longitude,
+    deviceId:DEVICE
   })
 });
 
