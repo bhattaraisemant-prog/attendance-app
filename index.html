@@ -1,31 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attendance Fix</title>
+<title>Attendance</title>
 </head>
 
-<body>
+<body style="font-family:Arial;text-align:center;margin-top:50px;">
 
-<h2>System Fix Running</h2>
+<h2>Teacher Attendance System</h2>
 
-<button onclick="test()">TEST</button>
+<select id="teacher">
+<option value="">Select Teacher</option>
+<option value="001">001</option>
+<option value="002">002</option>
+<option value="003">003</option>
+</select>
+
+<br><br>
+
+<button onclick="register()">Register</button>
+<button onclick="mark('ENTRY')">ENTRY</button>
+<button onclick="mark('EXIT')">EXIT</button>
 
 <script>
-const API="https://attendance-proxy.bhattaraisemant.workers.dev";
 
-async function test(){
+const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
 
-const res = await fetch(API,{
-method:"POST",
-body:JSON.stringify({action:"ping"})
+const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
+
+async function post(data){
+  const res = await fetch(API,{
+    method:"POST",
+    body:JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function register(){
+
+const code = document.getElementById("teacher").value;
+
+if(!code){
+alert("Select teacher");
+return;
+}
+
+const res = await post({
+action:"register",
+teacherCode:code,
+deviceId:DEVICE
 });
 
-const data = await res.text();
-alert(data);
+alert(res.message);
 
 }
+
+function mark(type){
+
+navigator.geolocation.getCurrentPosition(async pos=>{
+
+const res = await post({
+action:"markAttendance",
+type:type,
+lat:pos.coords.latitude,
+lng:pos.coords.longitude,
+deviceId:DEVICE
+});
+
+alert(res.message);
+
+});
+
+}
+
 </script>
 
 </body>
