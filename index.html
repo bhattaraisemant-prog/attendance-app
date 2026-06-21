@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    input, button { width: 80%; padding: 10px; margin-top: 10px; font-size: 14px; }
+    #status { margin-top: 15px; white-space: pre-line; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h2>Systematic School Attendance System</h2>
+
+<input id="tid" placeholder="Teacher ID">
+<input id="tname" placeholder="Name">
+
+<button onclick="register()">Register</button>
+<button onclick="entry()">ENTRY</button>
+<button onclick="exit()">EXIT</button>
+
+<div id="status"></div>
+
+<script>
+const WORKER_URL = "https://attendance-proxy.bhattaraisemant.workers.dev/";
+
+let deviceId = btoa(navigator.userAgent + screen.width + screen.height);
+
+async function callApi(payload) {
+  document.getElementById("status").innerText = "Working...";
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    document.getElementById("status").innerText = data.message;
+  } catch (err) {
+    document.getElementById("status").innerText = "❌ Network error: " + err.message;
+  }
+}
+
+function register() {
+  callApi({
+    action: "register",
+    teacherId: document.getElementById("tid").value,
+    name: document.getElementById("tname").value,
+    deviceId: deviceId,
+  });
+}
+
+function entry() { sendAttendance("ENTRY"); }
+function exit() { sendAttendance("EXIT"); }
+
+function sendAttendance(type) {
+  document.getElementById("status").innerText = "Getting GPS...";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      callApi({
+        action: "markAttendance",
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        deviceId: deviceId,
+        type: type,
+        accuracy: pos.coords.accuracy,
+      });
+    },
+    () => { document.getElementById("status").innerText = "❌ GPS error or permission denied"; },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+</script>
+
+</body>
+</html>
