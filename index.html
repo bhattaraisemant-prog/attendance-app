@@ -7,13 +7,15 @@
 <style>
 body {
   margin:0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background:#0f172a;
   color:white;
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  min-height:100vh;
+  padding:20px;
+  box-sizing:border-box;
 }
 
 .card {
@@ -38,6 +40,7 @@ select, button {
   margin-top:10px;
   border-radius:10px;
   border:none;
+  font-size:15px;
 }
 
 select { background:#1f2937; color:white; }
@@ -50,6 +53,9 @@ select { background:#1f2937; color:white; }
   text-align:center;
   margin-top:10px;
   font-size:13px;
+  padding:8px;
+  background:#1f2937;
+  border-radius:8px;
 }
 </style>
 </head>
@@ -58,21 +64,23 @@ select { background:#1f2937; color:white; }
 
 <div class="card">
 
-<img src="logo.png" class="logo-img">
+<img src="logo.png" class="logo-img" alt="Logo">
 
 <select id="teacher"></select>
 
-<button class="register" onclick="register()">Register</button>
-<button class="entry" onclick="mark('ENTRY')">ENTRY</button>
-<button class="exit" onclick="mark('EXIT')">EXIT</button>
+<button class="register" onclick="register()">📝 Register / दर्ता गर्नुहोस्</button>
+<button class="entry" onclick="mark('ENTRY')">✅ ENTRY / प्रवेश</button>
+<button class="exit" onclick="mark('EXIT')">🚪 EXIT / निस्कास</button>
 
-<div class="status" id="status">Ready</div>
+<div class="status" id="status">Ready / तयार</div>
 
 </div>
 
 <script>
 
-// YOUR WORKING API URL
+// ============================================
+// CONFIGURATION
+// ============================================
 const API = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
@@ -80,43 +88,49 @@ function setStatus(m){
   document.getElementById("status").innerText = m;
 }
 
+// ============================================
 // LOAD TEACHERS
+// ============================================
 async function load(){
   try {
-    setStatus("Loading teachers...");
+    setStatus("Loading teachers... / शिक्षकहरू लोड हुँदै...");
     
-    // FIXED: Proper URL format
     const res = await fetch(API + "?action=getTeachers");
     const d = await res.json();
-    
-    console.log("Teachers response:", d); // Debug
 
     const sel = document.getElementById("teacher");
-    sel.innerHTML = `<option value="">Select Teacher</option>`;
+    sel.innerHTML = `<option value="">Select Teacher / शिक्षक छान्नुहोस्</option>`;
 
-    if (d.success && d.teachers) {
+    if (d.success && d.teachers && d.teachers.length > 0) {
       d.teachers.forEach(t=>{
         sel.innerHTML += `<option value="${t.code}">${t.code} - ${t.name}</option>`;
       });
-      setStatus("Ready");
+      setStatus("✅ Ready / तयार");
     } else {
-      setStatus("No teachers found. Check sheet.");
+      setStatus("❌ No teachers found / शिक्षक भेटिएन");
+      alert("No teachers in database!\nकृपया एडमिनलाई सम्पर्क गर्नुहोस्");
     }
   } catch (e) {
-    console.error("Load error:", e);
-    setStatus("Failed to load: " + e.message);
+    console.error(e);
+    setStatus("❌ Failed to load / लोड गर्न असफल");
+    alert("Cannot connect to server.\nसर्भरमा जडान हुन सकेन।\n\nPlease check:\n• Internet connection\n• इन्टरनेट जाँच गर्नुहोस्");
   }
 }
 
 load();
 
+// ============================================
 // REGISTER
+// ============================================
 async function register(){
 
   const code = document.getElementById("teacher").value;
-  if(!code) return alert("Select teacher");
+  if(!code) {
+    alert("Please select teacher first!\nकृपया पहिले शिक्षक छान्नुहोस्");
+    return;
+  }
 
-  setStatus("Registering...");
+  setStatus("Registering... / दर्ता हुँदै...");
 
   try {
     const res = await fetch(API,{
@@ -130,27 +144,47 @@ async function register(){
     });
 
     const d = await res.json();
-    console.log("Register response:", d); // Debug
     
-    setStatus(d.message);
-    alert(d.message);
+    if(d.success) {
+      setStatus("✅ " + d.message);
+      alert("✅ Success / सफल!\n\n" + d.message);
+    } else {
+      setStatus("❌ " + d.message);
+      
+      // Nepali translations for common errors
+      let nepaliMsg = "";
+      if(d.message.includes("Invalid teacher code")) {
+        nepaliMsg = "गलत शिक्षक कोड";
+      } else if(d.message.includes("Already registered")) {
+        nepaliMsg = "यो डिभाइस पहिले नै दर्ता भइसकेको छ";
+      } else if(d.message.includes("Device already used")) {
+        nepaliMsg = "यो डिभाइस अर्को शिक्षकसँग जोडिएको छ";
+      } else {
+        nepaliMsg = d.message;
+      }
+      
+      alert("❌ Failed / असफल\n\n" + d.message + "\n" + nepaliMsg);
+    }
 
   } catch (e) {
-    console.error("Register error:", e);
-    setStatus("Error: " + e.message);
-    alert("Request failed: " + e.message);
+    console.error(e);
+    setStatus("❌ Registration failed / दर्ता असफल");
+    alert("Registration failed!\nदर्ता हुन सकेन।\n\nPlease check internet connection.\nकृपया इन्टरनेट जाँच गर्नुहोस्।");
   }
 }
 
+// ============================================
 // ENTRY / EXIT
+// ============================================
 function mark(type){
 
-  setStatus("Getting your location...");
+  const typeNepali = type === "ENTRY" ? "प्रवेश" : "निस्कास";
+  
+  setStatus("Getting location... / लोकेसन लिँदै...");
 
-  // Check GPS
   if (!navigator.geolocation) {
-    setStatus("GPS not supported");
-    alert("Your device doesn't support GPS.");
+    setStatus("❌ GPS not supported");
+    alert("GPS not available on this device!\nयो डिभाइसमा GPS उपलब्ध छैन।");
     return;
   }
 
@@ -159,12 +193,12 @@ function mark(type){
     const accuracy = pos.coords.accuracy;
 
     if (accuracy > 200) {
-      setStatus("GPS too weak (±" + Math.round(accuracy) + "m)");
-      alert("GPS signal weak (±" + Math.round(accuracy) + "m).\n\nGo outdoors and enable High Accuracy mode.");
+      setStatus("⚠️ Weak GPS (±" + Math.round(accuracy) + "m)");
+      alert("GPS signal too weak!\nGPS सिग्नल कमजोर छ।\n\nPlease:\n• Go outdoors (खुला ठाउँमा जानुहोस्)\n• Enable High Accuracy (हाई एक्युरेसी अन गर्नुहोस्)");
       return;
     }
 
-    setStatus("Sending...");
+    setStatus("Sending... / पठाउँदै...");
 
     try {
       const res = await fetch(API,{
@@ -180,26 +214,59 @@ function mark(type){
       });
 
       const d = await res.json();
-      console.log("Mark response:", d); // Debug
       
-      setStatus(d.message);
-      alert(d.message);
+      if(d.success) {
+        setStatus("✅ " + d.message);
+        alert("✅ Success / सफल!\n\n" + typeNepali + " marked.\n" + d.message);
+      } else {
+        setStatus("❌ " + d.message);
+        
+        // Nepali translations
+        let nepaliMsg = "";
+        if(d.message.includes("Device not registered")) {
+          nepaliMsg = "पहिले दर्ता गर्नुहोस्";
+        } else if(d.message.includes("Outside school")) {
+          nepaliMsg = "तपाईं स्कूल क्षेत्रभन्दा बाहिर हुनुहुन्छ";
+        } else if(d.message.includes("already marked ENTRY")) {
+          nepaliMsg = "आज प्रवेश पहिले नै गरिसक्नुभएको छ";
+        } else if(d.message.includes("already marked EXIT")) {
+          nepaliMsg = "आज निस्कास पहिले नै गरिसक्नुभएको छ";
+        } else if(d.message.includes("Mark ENTRY first")) {
+          nepaliMsg = "पहिले प्रवेश गर्नुहोस्";
+        } else {
+          nepaliMsg = d.message;
+        }
+        
+        alert("❌ Failed / असफल\n\n" + d.message + "\n" + nepaliMsg);
+      }
 
     } catch (e) {
-      console.error("Mark error:", e);
-      setStatus("Error: " + e.message);
-      alert("Request failed: " + e.message);
+      console.error(e);
+      setStatus("❌ Failed to send / पठाउन असफल");
+      alert("Could not connect to server!\nसर्भरमा जडान हुन सकेन।\n\nCheck internet.\nइन्टरनेट जाँच गर्नुहोस्।");
     }
 
   }, err => {
     let msg = "";
-    if(err.code === 1) msg = "GPS denied. Enable in settings.";
-    else if(err.code === 2) msg = "GPS unavailable. Go outdoors.";
-    else if(err.code === 3) msg = "GPS timeout. Try again.";
-    else msg = "GPS error: " + err.message;
+    let nepaliMsg = "";
     
-    setStatus(msg);
-    alert(msg);
+    if(err.code === 1) {
+      msg = "Location permission denied!";
+      nepaliMsg = "GPS अनुमति अस्वीकार गरियो।\n\nSettings मा गएर Location अन गर्नुहोस्।";
+    } else if(err.code === 2) {
+      msg = "GPS signal not available!";
+      nepaliMsg = "GPS सिग्नल उपलब्ध छैन।\n\nखुला आकाशमुनि जानुहोस्।";
+    } else if(err.code === 3) {
+      msg = "GPS timeout!";
+      nepaliMsg = "GPS ले काम गरेन।\n\n• खुला ठाउँमा जानुहोस्\n• GPS अन गर्नुहोस्\n• High Accuracy मोड राख्नुहोस्";
+    } else {
+      msg = "GPS error: " + err.message;
+      nepaliMsg = "GPS त्रुटि";
+    }
+    
+    setStatus("❌ " + msg);
+    alert(msg + "\n\n" + nepaliMsg);
+    
   }, {
     enableHighAccuracy: true,
     timeout: 30000,
