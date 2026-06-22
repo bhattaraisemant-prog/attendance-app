@@ -53,7 +53,7 @@ select{
 button{
   font-weight:bold;
   cursor:pointer;
-  transition:opacity 0.2s;
+  transition:0.2s;
 }
 button:active{
   opacity:0.8;
@@ -99,9 +99,7 @@ button:active{
 
 <script>
 
-// ============================================
-// CHANGE THIS TO YOUR CLOUDFLARE WORKER URL
-// ============================================
+// Your working Cloudflare Worker URL
 const API = "https://attendance-proxy.bhattaraisemant.workers.dev";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
@@ -109,15 +107,17 @@ function setStatus(msg){
   document.getElementById("status").innerText = msg;
 }
 
-// ============================================
+// ==========================================
 // LOAD TEACHERS
-// ============================================
+// ==========================================
 async function loadTeachers(){
   try{
     setStatus("Loading teachers... / लोड हुँदै...");
     
-    const res = await fetch(API + "?action=getTeachers");
-    const data = await res.json();
+    const response = await fetch(API + "?action=getTeachers");
+    const data = await response.json();
+    
+    console.log("Teachers loaded:", data);
     
     const sel = document.getElementById("teacher");
     
@@ -137,13 +137,12 @@ async function loadTeachers(){
     console.error("Load error:", e);
     document.getElementById("teacher").innerHTML = '<option value="">Failed to load</option>';
     setStatus("❌ Connection failed / जडान असफल");
-    alert("Cannot connect to server!\nसर्भरमा जडान हुन सकेन।\n\nPlease check your internet.\nइन्टरनेट जाँच गर्नुहोस्।");
   }
 }
 
-// ============================================
+// ==========================================
 // REGISTER DEVICE
-// ============================================
+// ==========================================
 async function registerDevice(){
   const code = document.getElementById("teacher").value;
   
@@ -155,7 +154,7 @@ async function registerDevice(){
   setStatus("Registering... / दर्ता हुँदै...");
   
   try{
-    const res = await fetch(API, {
+    const response = await fetch(API, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -165,7 +164,8 @@ async function registerDevice(){
       })
     });
     
-    const data = await res.json();
+    const data = await response.json();
+    console.log("Register response:", data);
     
     if(data.success){
       setStatus("✅ " + data.message);
@@ -177,13 +177,12 @@ async function registerDevice(){
   } catch(e){
     console.error("Register error:", e);
     setStatus("❌ Registration failed / दर्ता असफल");
-    alert("Network error!\nनेटवर्क त्रुटि!\n\nCheck internet connection.\nइन्टरनेट जाँच गर्नुहोस्।");
   }
 }
 
-// ============================================
+// ==========================================
 // MARK ATTENDANCE
-// ============================================
+// ==========================================
 function markAttendance(type){
   
   const typeNepali = type === "ENTRY" ? "प्रवेश" : "निस्कास";
@@ -215,7 +214,7 @@ function markAttendance(type){
       setStatus("📤 Sending... / पठाउँदै...");
       
       try{
-        const res = await fetch(API, {
+        const response = await fetch(API, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
@@ -227,7 +226,8 @@ function markAttendance(type){
           })
         });
         
-        const data = await res.json();
+        const data = await response.json();
+        console.log("Mark response:", data);
         
         if(data.success){
           setStatus("✅ " + data.message);
@@ -249,7 +249,6 @@ function markAttendance(type){
       } catch(e){
         console.error("Mark error:", e);
         setStatus("❌ Failed / असफल");
-        alert("Network error!\nनेटवर्क त्रुटि!\n\nCheck internet.\nइन्टरनेट जाँच गर्नुहोस्।");
       }
     },
     function(err){
@@ -266,7 +265,7 @@ function markAttendance(type){
   );
 }
 
-// Start app
+// Start the app
 loadTeachers();
 
 </script>
