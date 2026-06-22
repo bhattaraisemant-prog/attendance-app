@@ -1,354 +1,135 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Attendance System</title>
-
-<style>
-body {
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#0f172a;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-  padding:20px;
-  box-sizing:border-box;
-}
-
-.card {
-  width:360px;
-  background:#111827;
-  padding:25px 20px;
-  border-radius:18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.logo-img{
-  width:70px;
-  height:70px;
-  border-radius:50%;
-  object-fit:cover;
-  display:block;
-  margin:0 auto 15px auto;
-  border: 3px solid #3b82f6;
-  background:#1e293b;
-}
-
-select, button {
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  border-radius:10px;
-  border:none;
-  font-size:16px;
-  box-sizing:border-box;
-}
-
-select { 
-  background:#1f2937; 
-  color:white;
-  appearance:none;
-  -webkit-appearance:none;
-}
-
-button {
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:active {
-  opacity:0.8;
-  transform:scale(0.98);
-}
-
-.register { background:#3b82f6; color:white; }
-.entry { background:#22c55e; color:white; }
-.exit { background:#ef4444; color:white; }
-
-.status {
-  text-align:center;
-  margin-top:15px;
-  padding:12px;
-  font-size:14px;
-  background:#1f2937;
-  border-radius:8px;
-  min-height:20px;
-  line-height:1.5;
-}
-
-.info-text {
-  text-align:center;
-  margin-top:15px;
-  font-size:11px;
-  color:#64748b;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<img src="logo.png" class="logo-img" alt="Logo" onerror="this.style.display='none'">
-
-<select id="teacher"></select>
-
-<button class="register" onclick="register()">📝 Register / दर्ता गर्नुहोस्</button>
-<button class="entry" onclick="mark('ENTRY')">✅ ENTRY / प्रवेश</button>
-<button class="exit" onclick="mark('EXIT')">🚪 EXIT / निस्कास</button>
-
-<div class="status" id="status">Ready / तयार</div>
-
-<div class="info-text">
-  Must be within 400m of school • Entry: 5AM - 4PM
-</div>
-
-</div>
-
-<script>
-
-// ============================================
-// CONFIGURATION - CHANGE THIS AFTER REDEPLOY
-// ============================================
-const API = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
-const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
-
-// ============================================
-// STATUS DISPLAY
-// ============================================
-function setStatus(m, isError = false){
-  const el = document.getElementById("status");
-  el.innerText = m;
-  el.style.color = isError ? '#ef4444' : 'white';
-}
-
-// ============================================
-// LOAD TEACHERS
-// ============================================
-async function load(){
-  try {
-    setStatus("Loading... / लोड हुँदै...");
-    
-    const res = await fetch(API + "?action=getTeachers");
-    const d = await res.json();
-
-    const sel = document.getElementById("teacher");
-    sel.innerHTML = `<option value="">शिक्षक छान्नुहोस्</option>`;
-
-    if (d.success && d.teachers && d.teachers.length > 0) {
-      d.teachers.forEach(t => {
-        sel.innerHTML += `<option value="${t.code}">${t.code} - ${t.name}</option>`;
-      });
-      setStatus("✅ Ready / तयार");
-    } else {
-      setStatus("❌ No teachers found", true);
-    }
-  } catch (e) {
-    console.error("Load error:", e);
-    setStatus("❌ लोड असफल / Load failed", true);
-    alert("सर्भरमा जडान हुन सकेन!\nCannot connect to server.\n\nकृपया इन्टरनेट जाँच गर्नुहोस्।");
-  }
-}
-
-load();
-
-// ============================================
-// REGISTER DEVICE
-// ============================================
-async function register(){
-
-  const code = document.getElementById("teacher").value;
+function doGet(e) {
+  var action = e.parameter.action;
   
-  if(!code) {
-    alert("कृपया पहिले शिक्षक छान्नुहोस्!\nPlease select teacher first!");
-    return;
-  }
-
-  setStatus("दर्ता हुँदै... / Registering...");
-
-  try {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "register",
-        teacherCode: code,
-        deviceId: DEVICE
-      })
-    });
-
-    const d = await res.json();
-    
-    if(d.success) {
-      setStatus("✅ " + d.message);
-      alert("✅ सफल!\n\n" + d.message);
-    } else {
-      setStatus("❌ " + d.message, true);
-      alert("❌ असफल!\n\n" + d.message);
-    }
-
-  } catch (e) {
-    console.error("Register error:", e);
-    setStatus("❌ दर्ता असफल", true);
-    alert("दर्ता हुन सकेन!\nRegistration failed.\n\nइन्टरनेट जाँच गर्नुहोस्।\nCheck internet connection.");
-  }
-}
-
-// ============================================
-// MARK ATTENDANCE (ENTRY/EXIT)
-// ============================================
-function mark(type){
-
-  const typeNepali = type === "ENTRY" ? "प्रवेश" : "निस्कास";
-  
-  setStatus("📍 Location लिँदै...");
-
-  // Check GPS availability
-  if (!navigator.geolocation) {
-    setStatus("❌ GPS छैन", true);
-    alert("तपाईंको फोनमा GPS उपलब्ध छैन!\nGPS not available on your device!");
-    return;
-  }
-
-  // GPS Options
-  const gpsOptions = {
-    enableHighAccuracy: true,  // Use GPS satellite
-    timeout: 30000,             // 30 seconds
-    maximumAge: 0               // No cached location
-  };
-
-  navigator.geolocation.getCurrentPosition(
-    
-    // SUCCESS - Got location
-    async function(pos) {
-      
-      const accuracy = pos.coords.accuracy;
-
-      // Check GPS accuracy
-      if (accuracy > 200) {
-        setStatus("⚠️ GPS कमजोर (±" + Math.round(accuracy) + "m)", true);
-        alert(
-          "GPS सिग्नल कमजोर छ! (±" + Math.round(accuracy) + "m)\n\n" +
-          "कृपया:\n" +
-          "• खुला आकाशमुनि जानुहोस्\n" +
-          "• Go outdoors\n" +
-          "• High Accuracy Mode अन गर्नुहोस्\n" +
-          "• Enable High Accuracy in settings"
-        );
-        return;
-      }
-
-      setStatus("पठाउँदै... / Sending...");
-
-      try {
-        const res = await fetch(API, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "markAttendance",
-            type: type,
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            deviceId: DEVICE
-          })
+  if (action === "getTeachers") {
+    var sheet = SpreadsheetApp.getActive().getSheetByName("Teachers");
+    var data = sheet.getDataRange().getValues();
+    var teachers = [];
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0]) {
+        teachers.push({
+          code: String(data[i][0]).trim(),
+          name: String(data[i][1] || "").trim()
         });
-
-        const d = await res.json();
-        
-        if(d.success) {
-          setStatus("✅ " + d.message);
-          alert("✅ सफल!\n\n" + typeNepali + " दर्ता भयो।\n" + d.message);
-        } else {
-          setStatus("❌ " + d.message, true);
-          
-          // Nepali translations
-          let nepaliMsg = "";
-          if(d.message.includes("not registered")) {
-            nepaliMsg = "पहिले दर्ता गर्नुहोस्!";
-          } else if(d.message.includes("Outside school")) {
-            nepaliMsg = "तपाईं स्कूल क्षेत्रभन्दा बाहिर हुनुहुन्छ!";
-          } else if(d.message.includes("already marked ENTRY")) {
-            nepaliMsg = "आज प्रवेश भइसकेको छ!";
-          } else if(d.message.includes("already marked EXIT")) {
-            nepaliMsg = "आज निस्कास भइसकेको छ!";
-          } else if(d.message.includes("Mark ENTRY first")) {
-            nepaliMsg = "पहिले प्रवेश गर्नुहोस्!";
-          } else if(d.message.includes("only after 5 AM")) {
-            nepaliMsg = "बिहान ५ बजेपछि मात्र प्रवेश हुन्छ!";
-          } else if(d.message.includes("after 4 PM")) {
-            nepaliMsg = "४ बजेपछि प्रवेश हुँदैन!";
-          } else {
-            nepaliMsg = d.message;
-          }
-          
-          alert("❌ असफल!\n\n" + d.message + "\n\n" + nepaliMsg);
-        }
-
-      } catch (e) {
-        console.error("Mark error:", e);
-        setStatus("❌ पठाउन असफल", true);
-        alert("सर्भरमा जडान हुन सकेन!\nCannot connect to server.\n\nइन्टरनेट जाँच गर्नुहोस्।\nCheck internet connection.");
       }
-
-    },
-    
-    // ERROR - GPS failed
-    function(err) {
-      let errorMsg = "";
-      
-      switch(err.code) {
-        case 1: // PERMISSION_DENIED
-          errorMsg = 
-            "GPS अनुमति अस्वीकार गरियो!\n\n" +
-            "कृपया:\n" +
-            "• Settings खोल्नुहोस्\n" +
-            "• Location/GPS अन गर्नुहोस्\n" +
-            "• Browser लाई location permission दिनुहोस्\n\n" +
-            "Location permission denied!\n" +
-            "Please enable GPS in your phone settings.";
-          break;
-          
-        case 2: // POSITION_UNAVAILABLE
-          errorMsg = 
-            "GPS सिग्नल भेटिएन!\n\n" +
-            "कृपया:\n" +
-            "• खुला आकाशमुनि जानुहोस्\n" +
-            "• भवनभित्र GPS ले काम गर्दैन\n" +
-            "• १० सेकेन्ड पर्खिनुहोस्\n\n" +
-            "GPS signal not found!\n" +
-            "Go outdoors for better signal.";
-          break;
-          
-        case 3: // TIMEOUT
-          errorMsg = 
-            "GPS टाइमआउट भयो!\n\n" +
-            "कृपया:\n" +
-            "• खुला ठाउँमा जानुहोस्\n" +
-            "• GPS On गर्नुहोस्\n" +
-            "• High Accuracy मोड चयन गर्नुहोस्\n" +
-            "• फेरि प्रयास गर्नुहोस्\n\n" +
-            "GPS timeout!\n" +
-            "Go outdoors, enable High Accuracy, and try again.";
-          break;
-          
-        default:
-          errorMsg = "GPS Error: " + err.message;
-      }
-      
-      setStatus("❌ GPS Error", true);
-      alert(errorMsg);
-      
-    },
-    
-    gpsOptions
-  );
-
+    }
+    return ContentService.createTextOutput(JSON.stringify({success:true, teachers:teachers}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
-</script>
+function doPost(e) {
+  var body = JSON.parse(e.postData.contents);
+  var action = body.action;
+  
+  if (action === "register") {
+    var sheet = SpreadsheetApp.getActive().getSheetByName("Teachers");
+    var data = sheet.getDataRange().getValues();
+    var code = String(body.teacherCode).trim();
+    var device = String(body.deviceId).trim();
+    
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === code) {
+        if (String(data[i][2] || "").trim() !== "") {
+          return ContentService.createTextOutput(JSON.stringify({success:false, message:"Already registered"}))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+        sheet.getRange(i+1, 3).setValue(device);
+        sheet.getRange(i+1, 4).setValue(new Date());
+        return ContentService.createTextOutput(JSON.stringify({success:true, message:"Registered"}))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({success:false, message:"Teacher not found"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  if (action === "markAttendance") {
+    var type = String(body.type).toUpperCase();
+    var device = String(body.deviceId).trim();
+    var lat = Number(body.lat);
+    var lng = Number(body.lng);
+    
+    // Find teacher
+    var teacherSheet = SpreadsheetApp.getActive().getSheetByName("Teachers");
+    var teacherData = teacherSheet.getDataRange().getValues();
+    var teacher = null;
+    
+    for (var i = 1; i < teacherData.length; i++) {
+      if (String(teacherData[i][2] || "").trim() === device) {
+        teacher = {
+          code: String(teacherData[i][0]).trim(),
+          name: String(teacherData[i][1]).trim()
+        };
+        break;
+      }
+    }
+    
+    if (!teacher) {
+      return ContentService.createTextOutput(JSON.stringify({success:false, message:"Not registered"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Check distance
+    var dist = getDistance(lat, lng, 26.8580694, 85.9583127);
+    if (dist > 400) {
+      return ContentService.createTextOutput(JSON.stringify({success:false, message:"Outside school: " + Math.round(dist) + "m"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Save attendance
+    var attSheet = SpreadsheetApp.getActive().getSheetByName("Attendance_Log");
+    var now = new Date();
+    var time = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");
+    
+    if (type === "ENTRY") {
+      var status = "Present";
+      if (now.getHours() >= 10 && now.getMinutes() > 5) status = "LP";
+      
+      attSheet.appendRow([now, teacher.code, teacher.name, time, "", lat, lng, Math.round(dist), status]);
+      return ContentService.createTextOutput(JSON.stringify({success:true, message:"ENTRY - " + status}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (type === "EXIT") {
+      var data = attSheet.getDataRange().getValues();
+      var today = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
+      
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][0]) {
+          var rowDate = Utilities.formatDate(new Date(data[i][0]), Session.getScriptTimeZone(), "dd/MM/yyyy");
+          if (rowDate === today && String(data[i][1]).trim() === teacher.code) {
+            attSheet.getRange(i+1, 5).setValue(time);
+            
+            if (now.getHours() < 16) {
+              attSheet.getRange(i+1, 9).setValue("Half Day");
+              return ContentService.createTextOutput(JSON.stringify({success:true, message:"EXIT - Half Day"}))
+                .setMimeType(ContentService.MimeType.JSON);
+            }
+            
+            return ContentService.createTextOutput(JSON.stringify({success:true, message:"EXIT"}))
+              .setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({success:false, message:"Entry first"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({success:false, message:"Error"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
-</body>
-</html>
+function getDistance(lat1, lon1, lat2, lon2) {
+  var R = 6371000;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLon = (lon2 - lon1) * Math.PI / 180;
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
