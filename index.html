@@ -61,18 +61,18 @@ select { background:#1f2937; color:white; }
 
 <select id="teacher"></select>
 
-<button class="register" onclick="register()">📝 Register</button>
-<button class="entry" onclick="mark('ENTRY')">✅ ENTRY</button>
-<button class="exit" onclick="mark('EXIT')">🚪 EXIT</button>
+<button class="register" onclick="register()">📝 Register / दर्ता</button>
+<button class="entry" onclick="mark('ENTRY')">✅ ENTRY / प्रवेश</button>
+<button class="exit" onclick="mark('EXIT')">🚪 EXIT / निस्कास</button>
 
-<div class="status" id="status">Ready</div>
+<div class="status" id="status">Ready / तयार</div>
 
 </div>
 
 <script>
 
-// PASTE YOUR NEW URL HERE AFTER DEPLOY
-const API = "https://script.google.com/macros/s/YOUR_NEW_URL/exec";
+// YOUR SAME OLD URL - NO CHANGE NEEDED
+const API = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
 function setStatus(m) {
@@ -93,10 +93,11 @@ async function load() {
       d.teachers.forEach(function(t) {
         sel.innerHTML += '<option value="' + t.code + '">' + t.code + ' - ' + t.name + '</option>';
       });
-      setStatus("Ready");
+      setStatus("✅ Ready");
     }
   } catch(e) {
-    setStatus("Failed to load");
+    setStatus("❌ Failed to load");
+    alert("Cannot connect. Check internet.\nइन्टरनेट जाँच गर्नुहोस्।");
   }
 }
 load();
@@ -104,7 +105,7 @@ load();
 // REGISTER
 async function register() {
   var code = document.getElementById("teacher").value;
-  if (!code) return alert("Select teacher");
+  if (!code) return alert("Select teacher / शिक्षक छान्नुहोस्");
   
   setStatus("Registering...");
   
@@ -123,17 +124,17 @@ async function register() {
     setStatus(d.message);
     alert(d.message);
   } catch(e) {
-    setStatus("Failed");
-    alert("Network error");
+    setStatus("❌ Failed");
+    alert("Network error / नेटवर्क त्रुटि");
   }
 }
 
 // MARK ATTENDANCE
 function mark(type) {
-  setStatus("Getting GPS...");
+  setStatus("📍 Getting GPS...");
   
   if (!navigator.geolocation) {
-    alert("GPS not available");
+    alert("GPS not available / GPS छैन");
     return;
   }
   
@@ -142,7 +143,7 @@ function mark(type) {
     var acc = pos.coords.accuracy;
     if (acc > 200) {
       setStatus("GPS weak: " + Math.round(acc) + "m");
-      alert("GPS weak. Go outdoors.");
+      alert("GPS weak. Go outdoors.\nGPS कमजोर। खुला ठाउँमा जानुहोस्।");
       return;
     }
     
@@ -165,16 +166,16 @@ function mark(type) {
       setStatus(d.message);
       alert(d.message);
     } catch(e) {
-      setStatus("Failed");
-      alert("Network error");
+      setStatus("❌ Failed");
+      alert("Network error / नेटवर्क त्रुटि");
     }
     
   }, function(err) {
     var msg = "GPS error";
-    if (err.code === 1) msg = "GPS denied";
-    if (err.code === 2) msg = "GPS unavailable";
-    if (err.code === 3) msg = "GPS timeout";
-    setStatus(msg);
+    if (err.code === 1) msg = "GPS denied - Settings मा GPS अन गर्नुहोस्";
+    if (err.code === 2) msg = "GPS unavailable - खुला ठाउँमा जानुहोस्";
+    if (err.code === 3) msg = "GPS timeout - फेरि प्रयास गर्नुहोस्";
+    setStatus("❌ " + msg);
     alert(msg);
   }, {
     enableHighAccuracy: true,
