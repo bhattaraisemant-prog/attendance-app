@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Attendance</title>
+<title>Attendance System</title>
 <style>
 body {
   margin:0;
@@ -65,13 +65,12 @@ select { background:#1f2937; color:white; }
 <button class="entry" onclick="mark('ENTRY')">✅ ENTRY / प्रवेश</button>
 <button class="exit" onclick="mark('EXIT')">🚪 EXIT / निस्कास</button>
 
-<div class="status" id="status">Ready / तयार</div>
+<div class="status" id="status">Loading...</div>
 
 </div>
 
 <script>
 
-// YOUR SAME OLD URL - NO CHANGE NEEDED
 const API = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
@@ -82,35 +81,46 @@ function setStatus(m) {
 // LOAD TEACHERS
 async function load() {
   try {
-    setStatus("Loading...");
-    var res = await fetch(API + "?action=getTeachers");
-    var d = await res.json();
+    setStatus("Loading teachers...");
     
-    var sel = document.getElementById("teacher");
+    let res = await fetch(API + "?action=getTeachers");
+    let d = await res.json();
+    
+    console.log(d); // Check in browser console
+    
+    let sel = document.getElementById("teacher");
     sel.innerHTML = '<option value="">Select Teacher</option>';
     
-    if (d.teachers) {
-      d.teachers.forEach(function(t) {
+    if (d.success && d.teachers && d.teachers.length > 0) {
+      for (let i = 0; i < d.teachers.length; i++) {
+        let t = d.teachers[i];
         sel.innerHTML += '<option value="' + t.code + '">' + t.code + ' - ' + t.name + '</option>';
-      });
-      setStatus("✅ Ready");
+      }
+      setStatus("✅ Ready - " + d.teachers.length + " teachers");
+    } else {
+      setStatus("No teachers found");
     }
   } catch(e) {
-    setStatus("❌ Failed to load");
-    alert("Cannot connect. Check internet.\nइन्टरनेट जाँच गर्नुहोस्।");
+    console.error(e);
+    setStatus("❌ Error loading");
+    alert("Cannot connect. Please check internet.");
   }
 }
+
 load();
 
 // REGISTER
 async function register() {
-  var code = document.getElementById("teacher").value;
-  if (!code) return alert("Select teacher / शिक्षक छान्नुहोस्");
+  let code = document.getElementById("teacher").value;
+  if (!code) {
+    alert("Please select teacher first!");
+    return;
+  }
   
   setStatus("Registering...");
   
   try {
-    var res = await fetch(API, {
+    let res = await fetch(API, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -120,12 +130,15 @@ async function register() {
       })
     });
     
-    var d = await res.json();
+    let d = await res.json();
+    console.log(d);
+    
     setStatus(d.message);
     alert(d.message);
   } catch(e) {
+    console.error(e);
     setStatus("❌ Failed");
-    alert("Network error / नेटवर्क त्रुटि");
+    alert("Network error! Check internet.");
   }
 }
 
@@ -134,23 +147,25 @@ function mark(type) {
   setStatus("📍 Getting GPS...");
   
   if (!navigator.geolocation) {
-    alert("GPS not available / GPS छैन");
+    alert("GPS not available on this device!");
     return;
   }
   
   navigator.geolocation.getCurrentPosition(async function(pos) {
     
-    var acc = pos.coords.accuracy;
+    let acc = pos.coords.accuracy;
+    console.log("GPS Accuracy: " + acc + "m");
+    
     if (acc > 200) {
-      setStatus("GPS weak: " + Math.round(acc) + "m");
-      alert("GPS weak. Go outdoors.\nGPS कमजोर। खुला ठाउँमा जानुहोस्।");
+      setStatus("⚠️ Weak GPS: " + Math.round(acc) + "m");
+      alert("GPS signal weak! Go outdoors.\nGPS कमजोर! खुला ठाउँमा जानुहोस्।");
       return;
     }
     
     setStatus("Sending...");
     
     try {
-      var res = await fetch(API, {
+      let res = await fetch(API, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -162,19 +177,22 @@ function mark(type) {
         })
       });
       
-      var d = await res.json();
+      let d = await res.json();
+      console.log(d);
+      
       setStatus(d.message);
       alert(d.message);
     } catch(e) {
+      console.error(e);
       setStatus("❌ Failed");
-      alert("Network error / नेटवर्क त्रुटि");
+      alert("Network error!");
     }
     
   }, function(err) {
-    var msg = "GPS error";
-    if (err.code === 1) msg = "GPS denied - Settings मा GPS अन गर्नुहोस्";
-    if (err.code === 2) msg = "GPS unavailable - खुला ठाउँमा जानुहोस्";
-    if (err.code === 3) msg = "GPS timeout - फेरि प्रयास गर्नुहोस्";
+    let msg = "";
+    if (err.code === 1) msg = "GPS denied. Enable in Settings.";
+    if (err.code === 2) msg = "GPS unavailable. Go outdoors.";
+    if (err.code === 3) msg = "GPS timeout. Try again.";
     setStatus("❌ " + msg);
     alert(msg);
   }, {
