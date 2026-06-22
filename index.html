@@ -72,9 +72,7 @@ select { background:#1f2937; color:white; }
 
 <script>
 
-// ============================================
-// CONFIGURATION - CHANGE THIS URL
-// ============================================
+// YOUR WORKING API URL
 const API = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
@@ -82,50 +80,37 @@ function setStatus(m){
   document.getElementById("status").innerText = m;
 }
 
-// ============================================
 // LOAD TEACHERS
-// ============================================
 async function load(){
   try {
     setStatus("Loading teachers...");
     
+    // FIXED: Proper URL format
     const res = await fetch(API + "?action=getTeachers");
-    
-    if (!res.ok) {
-      throw new Error("Server error: " + res.status);
-    }
-    
     const d = await res.json();
+    
+    console.log("Teachers response:", d); // Debug
 
     const sel = document.getElementById("teacher");
     sel.innerHTML = `<option value="">Select Teacher</option>`;
 
-    if (d.teachers && d.teachers.length > 0) {
+    if (d.success && d.teachers) {
       d.teachers.forEach(t=>{
         sel.innerHTML += `<option value="${t.code}">${t.code} - ${t.name}</option>`;
       });
       setStatus("Ready");
     } else {
-      setStatus("No teachers found");
+      setStatus("No teachers found. Check sheet.");
     }
   } catch (e) {
-    console.error(e);
-    setStatus("Failed to load teachers");
-    
-    // Retry after 3 seconds if failed
-    setTimeout(() => {
-      if (document.getElementById("teacher").options.length <= 1) {
-        load();
-      }
-    }, 3000);
+    console.error("Load error:", e);
+    setStatus("Failed to load: " + e.message);
   }
 }
 
 load();
 
-// ============================================
 // REGISTER
-// ============================================
 async function register(){
 
   const code = document.getElementById("teacher").value;
@@ -144,111 +129,82 @@ async function register(){
       })
     });
 
-    if (!res.ok) {
-      throw new Error("Server error: " + res.status);
-    }
-
     const d = await res.json();
+    console.log("Register response:", d); // Debug
+    
     setStatus(d.message);
     alert(d.message);
 
   } catch (e) {
-    console.error(e);
-    setStatus("Registration failed");
-    alert("Registration failed. Check your connection.");
+    console.error("Register error:", e);
+    setStatus("Error: " + e.message);
+    alert("Request failed: " + e.message);
   }
 }
 
-// ============================================
-// ENTRY / EXIT - FIXED GPS
-// ============================================
+// ENTRY / EXIT
 function mark(type){
 
   setStatus("Getting your location...");
 
-  // Check if geolocation is available
+  // Check GPS
   if (!navigator.geolocation) {
-    setStatus("GPS not supported on this device");
-    alert("Your device does not support GPS.");
+    setStatus("GPS not supported");
+    alert("Your device doesn't support GPS.");
     return;
   }
 
-  // GPS options - FIXED for mobile
-  const options = {
-    enableHighAccuracy: true,  // Use GPS satellite
-    timeout: 30000,             // 30 seconds (increased from 15)
-    maximumAge: 0               // No cached position
-  };
+  navigator.geolocation.getCurrentPosition(async pos => {
 
-  navigator.geolocation.getCurrentPosition(
-    // SUCCESS CALLBACK
-    async function(pos) {
+    const accuracy = pos.coords.accuracy;
+
+    if (accuracy > 200) {
+      setStatus("GPS too weak (±" + Math.round(accuracy) + "m)");
+      alert("GPS signal weak (±" + Math.round(accuracy) + "m).\n\nGo outdoors and enable High Accuracy mode.");
+      return;
+    }
+
+    setStatus("Sending...");
+
+    try {
+      const res = await fetch(API,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          action:"markAttendance",
+          type:type,
+          lat:pos.coords.latitude,
+          lng:pos.coords.longitude,
+          deviceId:DEVICE
+        })
+      });
+
+      const d = await res.json();
+      console.log("Mark response:", d); // Debug
       
-      const accuracy = pos.coords.accuracy;
+      setStatus(d.message);
+      alert(d.message);
 
-      // Allow up to 200m accuracy (more relaxed)
-      if (accuracy > 200) {
-        setStatus("Location not accurate enough (±" + Math.round(accuracy) + "m)");
-        alert("GPS signal too weak (±" + Math.round(accuracy) + "m).\n\nPlease:\n1. Go outdoors\n2. Enable High Accuracy mode\n3. Wait for GPS to stabilize\n4. Try again");
-        return;
-      }
+    } catch (e) {
+      console.error("Mark error:", e);
+      setStatus("Error: " + e.message);
+      alert("Request failed: " + e.message);
+    }
 
-      setStatus("Sending...");
-
-      try {
-        const res = await fetch(API,{
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({
-            action:"markAttendance",
-            type:type,
-            lat:pos.coords.latitude,
-            lng:pos.coords.longitude,
-            deviceId:DEVICE
-          })
-        });
-
-        if (!res.ok) {
-          throw new Error("Server error: " + res.status);
-        }
-
-        const d = await res.json();
-        setStatus(d.message);
-        alert(d.message);
-
-      } catch (e) {
-        console.error(e);
-        setStatus("Failed to send data");
-        alert("Could not connect to server. Check internet.");
-      }
-
-    },
+  }, err => {
+    let msg = "";
+    if(err.code === 1) msg = "GPS denied. Enable in settings.";
+    else if(err.code === 2) msg = "GPS unavailable. Go outdoors.";
+    else if(err.code === 3) msg = "GPS timeout. Try again.";
+    else msg = "GPS error: " + err.message;
     
-    // ERROR CALLBACK
-    function(err) {
-      let errorMsg = "";
-      
-      switch(err.code) {
-        case 1: // PERMISSION_DENIED
-          errorMsg = "Location permission denied.\n\nEnable GPS:\n• iPhone: Settings > Privacy > Location Services\n• Android: Settings > Location > ON";
-          break;
-        case 2: // POSITION_UNAVAILABLE
-          errorMsg = "GPS signal not available.\n\nPlease:\n• Go outdoors (not inside building)\n• Enable High Accuracy mode\n• Wait 10 seconds\n• Try again";
-          break;
-        case 3: // TIMEOUT
-          errorMsg = "GPS timed out.\n\nTips:\n• Go to open area (away from buildings)\n• Turn ON GPS/Location\n• Set to High Accuracy mode\n• Restart phone if continues";
-          break;
-        default:
-          errorMsg = "Location error: " + err.message;
-      }
-      
-      setStatus("Location error");
-      alert(errorMsg);
-      
-    },
-    
-    options
-  );
+    setStatus(msg);
+    alert(msg);
+  }, {
+    enableHighAccuracy: true,
+    timeout: 30000,
+    maximumAge: 0
+  });
 
 }
 
