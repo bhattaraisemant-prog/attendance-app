@@ -1,135 +1,188 @@
-function doGet(e) {
-  var action = e.parameter.action;
-  
-  if (action === "getTeachers") {
-    var sheet = SpreadsheetApp.getActive().getSheetByName("Teachers");
-    var data = sheet.getDataRange().getValues();
-    var teachers = [];
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0]) {
-        teachers.push({
-          code: String(data[i][0]).trim(),
-          name: String(data[i][1] || "").trim()
-        });
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify({success:true, teachers:teachers}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({success:true}))
-    .setMimeType(ContentService.MimeType.JSON);
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Attendance</title>
+<style>
+body {
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  padding:20px;
+  box-sizing:border-box;
+}
+.card {
+  width:350px;
+  background:#111827;
+  padding:20px;
+  border-radius:18px;
+}
+.logo-img {
+  width:65px;
+  height:65px;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+  margin:0 auto 10px auto;
+}
+select, button {
+  width:100%;
+  padding:14px;
+  margin-top:12px;
+  border-radius:10px;
+  border:none;
+  font-size:16px;
+  box-sizing:border-box;
+}
+select { background:#1f2937; color:white; }
+.register { background:#3b82f6; color:white; }
+.entry { background:#22c55e; color:white; }
+.exit { background:#ef4444; color:white; }
+.status {
+  text-align:center;
+  margin-top:12px;
+  padding:10px;
+  font-size:13px;
+  background:#1f2937;
+  border-radius:8px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+<img src="logo.png" class="logo-img" onerror="this.style.display='none'">
+
+<select id="teacher"></select>
+
+<button class="register" onclick="register()">📝 Register</button>
+<button class="entry" onclick="mark('ENTRY')">✅ ENTRY</button>
+<button class="exit" onclick="mark('EXIT')">🚪 EXIT</button>
+
+<div class="status" id="status">Ready</div>
+
+</div>
+
+<script>
+
+// PASTE YOUR NEW URL HERE AFTER DEPLOY
+const API = "https://script.google.com/macros/s/YOUR_NEW_URL/exec";
+const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
+
+function setStatus(m) {
+  document.getElementById("status").innerText = m;
 }
 
-function doPost(e) {
-  var body = JSON.parse(e.postData.contents);
-  var action = body.action;
-  
-  if (action === "register") {
-    var sheet = SpreadsheetApp.getActive().getSheetByName("Teachers");
-    var data = sheet.getDataRange().getValues();
-    var code = String(body.teacherCode).trim();
-    var device = String(body.deviceId).trim();
+// LOAD TEACHERS
+async function load() {
+  try {
+    setStatus("Loading...");
+    var res = await fetch(API + "?action=getTeachers");
+    var d = await res.json();
     
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]).trim() === code) {
-        if (String(data[i][2] || "").trim() !== "") {
-          return ContentService.createTextOutput(JSON.stringify({success:false, message:"Already registered"}))
-            .setMimeType(ContentService.MimeType.JSON);
-        }
-        sheet.getRange(i+1, 3).setValue(device);
-        sheet.getRange(i+1, 4).setValue(new Date());
-        return ContentService.createTextOutput(JSON.stringify({success:true, message:"Registered"}))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
+    var sel = document.getElementById("teacher");
+    sel.innerHTML = '<option value="">Select Teacher</option>';
+    
+    if (d.teachers) {
+      d.teachers.forEach(function(t) {
+        sel.innerHTML += '<option value="' + t.code + '">' + t.code + ' - ' + t.name + '</option>';
+      });
+      setStatus("Ready");
     }
-    
-    return ContentService.createTextOutput(JSON.stringify({success:false, message:"Teacher not found"}))
-      .setMimeType(ContentService.MimeType.JSON);
+  } catch(e) {
+    setStatus("Failed to load");
   }
+}
+load();
+
+// REGISTER
+async function register() {
+  var code = document.getElementById("teacher").value;
+  if (!code) return alert("Select teacher");
   
-  if (action === "markAttendance") {
-    var type = String(body.type).toUpperCase();
-    var device = String(body.deviceId).trim();
-    var lat = Number(body.lat);
-    var lng = Number(body.lng);
+  setStatus("Registering...");
+  
+  try {
+    var res = await fetch(API, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        action: "register",
+        teacherCode: code,
+        deviceId: DEVICE
+      })
+    });
     
-    // Find teacher
-    var teacherSheet = SpreadsheetApp.getActive().getSheetByName("Teachers");
-    var teacherData = teacherSheet.getDataRange().getValues();
-    var teacher = null;
-    
-    for (var i = 1; i < teacherData.length; i++) {
-      if (String(teacherData[i][2] || "").trim() === device) {
-        teacher = {
-          code: String(teacherData[i][0]).trim(),
-          name: String(teacherData[i][1]).trim()
-        };
-        break;
-      }
-    }
-    
-    if (!teacher) {
-      return ContentService.createTextOutput(JSON.stringify({success:false, message:"Not registered"}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Check distance
-    var dist = getDistance(lat, lng, 26.8580694, 85.9583127);
-    if (dist > 400) {
-      return ContentService.createTextOutput(JSON.stringify({success:false, message:"Outside school: " + Math.round(dist) + "m"}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Save attendance
-    var attSheet = SpreadsheetApp.getActive().getSheetByName("Attendance_Log");
-    var now = new Date();
-    var time = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");
-    
-    if (type === "ENTRY") {
-      var status = "Present";
-      if (now.getHours() >= 10 && now.getMinutes() > 5) status = "LP";
-      
-      attSheet.appendRow([now, teacher.code, teacher.name, time, "", lat, lng, Math.round(dist), status]);
-      return ContentService.createTextOutput(JSON.stringify({success:true, message:"ENTRY - " + status}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    if (type === "EXIT") {
-      var data = attSheet.getDataRange().getValues();
-      var today = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
-      
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][0]) {
-          var rowDate = Utilities.formatDate(new Date(data[i][0]), Session.getScriptTimeZone(), "dd/MM/yyyy");
-          if (rowDate === today && String(data[i][1]).trim() === teacher.code) {
-            attSheet.getRange(i+1, 5).setValue(time);
-            
-            if (now.getHours() < 16) {
-              attSheet.getRange(i+1, 9).setValue("Half Day");
-              return ContentService.createTextOutput(JSON.stringify({success:true, message:"EXIT - Half Day"}))
-                .setMimeType(ContentService.MimeType.JSON);
-            }
-            
-            return ContentService.createTextOutput(JSON.stringify({success:true, message:"EXIT"}))
-              .setMimeType(ContentService.MimeType.JSON);
-          }
-        }
-      }
-      
-      return ContentService.createTextOutput(JSON.stringify({success:false, message:"Entry first"}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+    var d = await res.json();
+    setStatus(d.message);
+    alert(d.message);
+  } catch(e) {
+    setStatus("Failed");
+    alert("Network error");
   }
-  
-  return ContentService.createTextOutput(JSON.stringify({success:false, message:"Error"}))
-    .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getDistance(lat1, lon1, lat2, lon2) {
-  var R = 6371000;
-  var dLat = (lat2 - lat1) * Math.PI / 180;
-  var dLon = (lon2 - lon1) * Math.PI / 180;
-  var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+// MARK ATTENDANCE
+function mark(type) {
+  setStatus("Getting GPS...");
+  
+  if (!navigator.geolocation) {
+    alert("GPS not available");
+    return;
+  }
+  
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    
+    var acc = pos.coords.accuracy;
+    if (acc > 200) {
+      setStatus("GPS weak: " + Math.round(acc) + "m");
+      alert("GPS weak. Go outdoors.");
+      return;
+    }
+    
+    setStatus("Sending...");
+    
+    try {
+      var res = await fetch(API, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          action: "markAttendance",
+          type: type,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          deviceId: DEVICE
+        })
+      });
+      
+      var d = await res.json();
+      setStatus(d.message);
+      alert(d.message);
+    } catch(e) {
+      setStatus("Failed");
+      alert("Network error");
+    }
+    
+  }, function(err) {
+    var msg = "GPS error";
+    if (err.code === 1) msg = "GPS denied";
+    if (err.code === 2) msg = "GPS unavailable";
+    if (err.code === 3) msg = "GPS timeout";
+    setStatus(msg);
+    alert(msg);
+  }, {
+    enableHighAccuracy: true,
+    timeout: 30000,
+    maximumAge: 0
+  });
 }
+
+</script>
+</body>
+</html>
