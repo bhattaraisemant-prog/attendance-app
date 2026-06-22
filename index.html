@@ -17,18 +17,18 @@ body {
   box-sizing:border-box;
 }
 .card {
-  width:350px;
+  width:360px;
   background:#111827;
-  padding:20px;
+  padding:25px 20px;
   border-radius:18px;
 }
 .logo-img {
-  width:65px;
-  height:65px;
+  width:70px;
+  height:70px;
   border-radius:50%;
   object-fit:cover;
   display:block;
-  margin:0 auto 10px auto;
+  margin:0 auto 15px auto;
 }
 select, button {
   width:100%;
@@ -71,6 +71,7 @@ select { background:#1f2937; color:white; }
 
 <script>
 
+// Use relative URL - no CORS issues!
 const API = "https://script.google.com/macros/s/AKfycbxQ5vb2aT2o4nVfu3t7gMJUc5NT9RrNkEHvwEXhiDE3A1Q6GTXKad2aBLhjkL4Yqpc8uA/exec";
 const DEVICE = localStorage.deviceId || (localStorage.deviceId = crypto.randomUUID());
 
@@ -81,46 +82,34 @@ function setStatus(m) {
 // LOAD TEACHERS
 async function load() {
   try {
-    setStatus("Loading teachers...");
+    setStatus("Loading...");
+    const res = await fetch(API + "?action=getTeachers");
+    const d = await res.json();
     
-    let res = await fetch(API + "?action=getTeachers");
-    let d = await res.json();
-    
-    console.log(d); // Check in browser console
-    
-    let sel = document.getElementById("teacher");
+    const sel = document.getElementById("teacher");
     sel.innerHTML = '<option value="">Select Teacher</option>';
     
-    if (d.success && d.teachers && d.teachers.length > 0) {
-      for (let i = 0; i < d.teachers.length; i++) {
-        let t = d.teachers[i];
+    if (d.teachers) {
+      d.teachers.forEach(t => {
         sel.innerHTML += '<option value="' + t.code + '">' + t.code + ' - ' + t.name + '</option>';
-      }
-      setStatus("✅ Ready - " + d.teachers.length + " teachers");
-    } else {
-      setStatus("No teachers found");
+      });
+      setStatus("✅ Ready");
     }
   } catch(e) {
-    console.error(e);
-    setStatus("❌ Error loading");
-    alert("Cannot connect. Please check internet.");
+    setStatus("❌ Failed to load");
   }
 }
-
 load();
 
 // REGISTER
 async function register() {
-  let code = document.getElementById("teacher").value;
-  if (!code) {
-    alert("Please select teacher first!");
-    return;
-  }
+  const code = document.getElementById("teacher").value;
+  if (!code) return alert("Select teacher");
   
   setStatus("Registering...");
   
   try {
-    let res = await fetch(API, {
+    const res = await fetch(API, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -130,15 +119,12 @@ async function register() {
       })
     });
     
-    let d = await res.json();
-    console.log(d);
-    
+    const d = await res.json();
     setStatus(d.message);
     alert(d.message);
   } catch(e) {
-    console.error(e);
     setStatus("❌ Failed");
-    alert("Network error! Check internet.");
+    alert("Network error");
   }
 }
 
@@ -147,25 +133,22 @@ function mark(type) {
   setStatus("📍 Getting GPS...");
   
   if (!navigator.geolocation) {
-    alert("GPS not available on this device!");
+    alert("GPS not available");
     return;
   }
   
-  navigator.geolocation.getCurrentPosition(async function(pos) {
+  navigator.geolocation.getCurrentPosition(async pos => {
     
-    let acc = pos.coords.accuracy;
-    console.log("GPS Accuracy: " + acc + "m");
-    
-    if (acc > 200) {
-      setStatus("⚠️ Weak GPS: " + Math.round(acc) + "m");
-      alert("GPS signal weak! Go outdoors.\nGPS कमजोर! खुला ठाउँमा जानुहोस्।");
+    if (pos.coords.accuracy > 200) {
+      setStatus("GPS weak: " + Math.round(pos.coords.accuracy) + "m");
+      alert("GPS weak. Go outdoors.");
       return;
     }
     
     setStatus("Sending...");
     
     try {
-      let res = await fetch(API, {
+      const res = await fetch(API, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -177,18 +160,15 @@ function mark(type) {
         })
       });
       
-      let d = await res.json();
-      console.log(d);
-      
+      const d = await res.json();
       setStatus(d.message);
       alert(d.message);
     } catch(e) {
-      console.error(e);
       setStatus("❌ Failed");
-      alert("Network error!");
+      alert("Network error");
     }
     
-  }, function(err) {
+  }, err => {
     let msg = "";
     if (err.code === 1) msg = "GPS denied. Enable in Settings.";
     if (err.code === 2) msg = "GPS unavailable. Go outdoors.";
